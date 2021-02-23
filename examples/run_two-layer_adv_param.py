@@ -10,6 +10,7 @@ sys.path.append('/home/ag7531/code/subgrid')
 
 from subgrid.models.utils import load_model_cls
 from subgrid.utils import select_experiment, select_run
+from subgrid.utils import pickle_artifact
 
 class Parameterization:
     """Defines a parameterization of subgrid momentum forcing bases on a
@@ -111,7 +112,9 @@ model_cls = load_model_cls(model_module_name, model_cls_name)
 client = mlflow.tracking.MlflowClient()
 model_file = client.download_artifacts(model_run.run_id,
                                        'models/trained_model.pth')
+transformation = pickle_artifact(model_run.run_id, 'models/transformation')
 net = model_cls(2, 4, padding='same')
+net.final_transformation = transformation
 
 # Load parameters of pre-trained model
 logging.info('Loading the neural net parameters')
