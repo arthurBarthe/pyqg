@@ -376,8 +376,8 @@ cdef class PseudoSpectralKernel:
         """Add the advection parameterization"""
         cdef Py_ssize_t k, j, i
         du, dv = self.parameterization(self.ufull[0, ...], self.vfull[0, ...])
-        cdef int [:, :] du_ = du
-        cdef int [:, :] dv_ = dv
+        cdef DTYPE_real_t [:, :] du_ = du
+        cdef DTYPE_real_t [:, :] dv_ = dv
         self.du[0, :, :] = du_
         self.dv[0, :, :] = dv_
         # convert to spectral space
