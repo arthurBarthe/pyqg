@@ -54,6 +54,11 @@ cdef class PseudoSpectralKernel:
     cdef DTYPE_com_t [:, :, :] dqhdt
     cdef DTYPE_com_t [:, :, :] dqhdt_p
     cdef DTYPE_com_t [:, :, :] dqhdt_pp
+    # adv param
+    cdef DTYPE_real_t [:, :, :] du
+    cdef DTYPE_real_t [:, :, :] dv
+    cdef DTYPE_com_t [:, :, :] duh
+    cdef DTYPE_com_t [:, :, :] dvh
 
     # dummy variables for diagnostic ffts
     cdef DTYPE_real_t [:, :, :] _dummy_fft_in
@@ -146,6 +151,12 @@ cdef class PseudoSpectralKernel:
         self.vq = vq
         vqh = self._empty_com()
         self.vqh = vqh
+
+        # adv param
+        self.du = self._empty_real()
+        self.dv = self._empty_real()
+        self.duh = self._empty_com()
+        self.dvh = self._empty_com()
 
         # dummy variables for diagnostic ffts
         dfftin = self._empty_real()
@@ -362,10 +373,10 @@ cdef class PseudoSpectralKernel:
         cdef Py_ssize_t k, j, i
         u_full = self.ufull
         v_full = self.vfull
-        du, dv = self.parameterization(u_full, v_full)
+        self.du, self.dv = self.parameterization(u_full, v_full)
         # convert to spectral space
-        duh = self.u_to_uh(du)
-        dvh = self.v_to_vh(dv)
+        self.duh = self.u_to_uh(self.du)
+        self.dvh = self.v_to_vh(self.dv)
 
         # TODO do it for all layers
         for k in range(1):
