@@ -377,7 +377,6 @@ cdef class PseudoSpectralKernel:
         # convert to spectral space
         self.u_to_uh(self.du)
         self.v_to_vh(self.dv)
-        print('Doing parameterization!')
         # TODO do it for all layers
         for k in range(1):
             for j in prange(self.nl, nogil=True, schedule='static',
@@ -560,6 +559,12 @@ cdef class PseudoSpectralKernel:
     property v:
         def __get__(self):
             return np.asarray(self.v)
+    property du:
+        def __get__(self):
+            return np.asarray(self.du)
+    property dv:
+        def __get__(self):
+            return np.asarray(self.dv)
     property ufull:
         def __get__(self):
             return np.asarray(self.u) + \
