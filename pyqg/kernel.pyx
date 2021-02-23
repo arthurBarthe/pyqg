@@ -104,6 +104,8 @@ cdef class PseudoSpectralKernel:
     cdef object fft_q_to_qh
     cdef object ifft_qh_to_q
     cdef object ifft_uh_to_u
+    cdef object fft_u_to_uh
+    cdef object fft_v_to_vh
     cdef object ifft_vh_to_v
     cdef object fft_uq_to_uqh
     cdef object fft_vq_to_vqh
@@ -205,10 +207,10 @@ cdef class PseudoSpectralKernel:
                              direction='FFTW_BACKWARD', axes=(-2,-1))
             self.ifft_vh_to_v = pyfftw.FFTW(vh, v, threads=fftw_num_threads,
                              direction='FFTW_BACKWARD', axes=(-2,-1))
-            self.fft_u_to_uh = pyfftw.FFTW(u, uh, threads=fftw_num_threads,
+            self.fft_u_to_uh = pyfftw.FFTW(du, duh, threads=fftw_num_threads,
                                            direction='FFTW_FORWARD',
                                            axes=(-2, -1))
-            self.fft_v_to_vh = pyfftw.FFTW(v, vh, threads=fftw_num_threads,
+            self.fft_v_to_vh = pyfftw.FFTW(dv, dvh, threads=fftw_num_threads,
                                            direction='FFTW_FORWARD',
                                            axes=(-2, -1))
             self.fft_uq_to_uqh = pyfftw.FFTW(uq, uqh, threads=fftw_num_threads,
@@ -223,7 +225,6 @@ cdef class PseudoSpectralKernel:
 
     # otherwise define those functions using numpy
     IF PYQG_USE_PYFFTW==0:
-        # TODO add fft_u/v_to_u/vh for numpy
         def fft_q_to_qh(self):
             self.qh = npfft.rfftn(self.q, axes=(-2,-1))
         def ifft_qh_to_q(self):
@@ -232,6 +233,10 @@ cdef class PseudoSpectralKernel:
             self.u = npfft.irfftn(self.uh, axes=(-2,-1))
         def ifft_vh_to_v(self):
             self.v = npfft.irfftn(self.vh, axes=(-2,-1))
+        def fft_u_to_uh(self):
+            self.duh = npfft.rfftn(self.du, axes=(-2,-1))
+        def fft_v_to_vh(self):
+            self.dvh = npfft.rfftn(self.dv, axes=(-2,-1))
         def fft_uq_to_uqh(self):
             self.uqh = npfft.rfftn(self.uq, axes=(-2,-1))
         def fft_vq_to_vqh(self):
@@ -381,8 +386,8 @@ cdef class PseudoSpectralKernel:
         self.du[0, :, :] = du_
         self.dv[0, :, :] = dv_
         # convert to spectral space
-        self.u_to_uh(self.du)
-        self.v_to_vh(self.dv)
+        self.u_to_uh()
+        self.v_to_vh()
         # TODO do it for all layers
         for k in range(1):
             for j in prange(self.nl, nogil=True, schedule='static',
