@@ -386,9 +386,12 @@ cdef class PseudoSpectralKernel:
                 for i in range(self.nk):
                     # overwrite the tendency, since the forcing gets called after
                     # TODO add back k when doing this for all layers
-                    self.dqhdt[k,j,i] += -( self._ik[i] * self.duh[k, j,i] +
-                                            self._il[j] * self.dvh[k, j,i] +
-                                            self._ikQy[k,i] * self.ph[k,j,i] )
+                    self.dqhdt[k,j,i] = (
+                                        self.dqhdt[k,j,i] -
+                                        ( self._ik[i] * self.duh[k, j,i] +
+                                        self._il[j] * self.dvh[k, j,i] +
+                                        self._ikQy[k,i] * self.ph[k,j,i] )
+                                        )
         return
 
     def _do_friction(self):
