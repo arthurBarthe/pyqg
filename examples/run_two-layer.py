@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import pyqg
 
-m = pyqg.QGModel(tavestart=0,  dt=8000)
+m = pyqg.QGModel(tavestart=0,  dt=8000, nx=64//1, ny=64//1)
 
 for snapshot in m.run_with_snapshots(
         tsnapstart=0, tsnapint=1000*m.dt):

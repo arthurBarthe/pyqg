@@ -374,9 +374,8 @@ cdef class PseudoSpectralKernel:
         self.du[0, ...], self.dv[0, ...] = self.parameterization(self.ufull,
                                                                  self.vfull)
         # convert to spectral space
-        with gil:
-            self.u_to_uh(self.du)
-            self.v_to_vh(self.dv)
+        self.u_to_uh(self.du)
+        self.v_to_vh(self.dv)
 
         # TODO do it for all layers
         for k in range(1):
