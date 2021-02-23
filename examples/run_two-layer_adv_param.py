@@ -132,8 +132,7 @@ m.parameterization = parameterization
 for snapshot in m.run_with_snapshots(
         tsnapstart=0, tsnapint=1000*m.dt):
     plt.clf()
-    plt.imshow(m.q[0] + m.Qy1 * m.y)
-    plt.clim([0,  m.Qy1 * m.W])
+    plt.imshow(m.du)
     plt.pause(0.01)
     plt.draw()
     
