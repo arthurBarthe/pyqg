@@ -368,15 +368,15 @@ cdef class PseudoSpectralKernel:
     def _do_advection_parameterization(self):
         self.__do_advection_parameterization()
 
-    cdef __do_advection_parameterization(self) nogil:
+    cdef __do_advection_parameterization(self):
         """Add the advection parameterization"""
         cdef Py_ssize_t k, j, i
-        u_full = self.ufull
-        v_full = self.vfull
-        self.du, self.dv = self.parameterization(u_full, v_full)
+        self.du[0, ...], self.dv[0, ...] = self.parameterization(self.ufull,
+                                                                 self.vfull)
         # convert to spectral space
-        self.duh = self.u_to_uh(self.du)
-        self.dvh = self.v_to_vh(self.dv)
+        with gil:
+            self.u_to_uh(self.du)
+            self.v_to_vh(self.dv)
 
         # TODO do it for all layers
         for k in range(1):
@@ -386,8 +386,8 @@ cdef class PseudoSpectralKernel:
                 for i in range(self.nk):
                     # overwrite the tendency, since the forcing gets called after
                     # TODO add back k when doing this for all layers
-                    self.dqhdt[k,j,i] += -( self._ik[i] * self.duh[j,i] +
-                                            self._il[j] * self.dvh[j,i] +
+                    self.dqhdt[k,j,i] += -( self._ik[i] * self.duh[k, j,i] +
+                                            self._il[j] * self.dvh[k, j,i] +
                                             self._ikQy[k,i] * self.ph[k,j,i] )
         return
 
