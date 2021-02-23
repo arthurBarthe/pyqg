@@ -13,7 +13,7 @@ class Parameterization:
     """Defines a parameterization of subgrid momentum forcing bases on a
     trained neural network. To be used within an object of type
     WaterModelWithDLParameterization."""
-    def __init__(self, nn: Module, device, mult_factor: float = 1.,
+    def __init__(self, nn, device, mult_factor: float = 1.,
                  every: int = 4, every_noise: int = 4, force_zero_sum: bool =
                  False):
         self.nn = nn.to(device=device)
@@ -110,7 +110,6 @@ client = mlflow.tracking.MlflowClient()
 model_file = client.download_artifacts(model_run.run_id,
                                        'models/trained_model.pth')
 net = model_cls(2, 4, padding='same')
-net.final_transformation = transformation
 
 # Load parameters of pre-trained model
 logging.info('Loading the neural net parameters')
