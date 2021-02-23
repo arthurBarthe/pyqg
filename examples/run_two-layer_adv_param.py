@@ -98,7 +98,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 models_experiment_id, _ = select_experiment()
 cols = ['metrics.test loss', 'params.time_indices',
         'params.model_cls_name', 'params.source.run_id', 'params.submodel']
-model_run = select_run(sort_by='start_time', cols=cols,
+model_run = select_run(cols=cols,
                        experiment_ids=[models_experiment_id, ])
 model_module_name = model_run['params.model_module_name']
 model_cls_name = model_run['params.model_cls_name']
