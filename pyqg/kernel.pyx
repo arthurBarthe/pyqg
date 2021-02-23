@@ -190,6 +190,12 @@ cdef class PseudoSpectralKernel:
                              direction='FFTW_BACKWARD', axes=(-2,-1))
             self.ifft_vh_to_v = pyfftw.FFTW(vh, v, threads=fftw_num_threads,
                              direction='FFTW_BACKWARD', axes=(-2,-1))
+            self.fft_u_to_uh = pyfftw.FFTW(u, uh, threads=fftw_num_threads,
+                                           direction='FFTW_FORWARD',
+                                           axes=(-2, -1))
+            self.fft_v_to_vh = pyfftw.FFTW(v, vh, threads=fftw_num_threads,
+                                           direction='FFTW_FORWARD',
+                                           axes=(-2, -1))
             self.fft_uq_to_uqh = pyfftw.FFTW(uq, uqh, threads=fftw_num_threads,
                              direction='FFTW_FORWARD', axes=(-2,-1))
             self.fft_vq_to_vqh = pyfftw.FFTW(vq, vqh, threads=fftw_num_threads,
@@ -202,6 +208,7 @@ cdef class PseudoSpectralKernel:
 
     # otherwise define those functions using numpy
     IF PYQG_USE_PYFFTW==0:
+        # TODO add fft_u/v_to_u/vh for numpy
         def fft_q_to_qh(self):
             self.qh = npfft.rfftn(self.q, axes=(-2,-1))
         def ifft_qh_to_q(self):
@@ -345,6 +352,32 @@ cdef class PseudoSpectralKernel:
                     self.dqhdt[k,j,i] = -( self._ik[i] * self.uqh[k,j,i] +
                                     self._il[j] * self.vqh[k,j,i] +
                                     self._ikQy[k,i] * self.ph[k,j,i] )
+        return
+
+    def _do_advection_parameterization(self):
+        self.__do_advection_parameterization()
+
+    cdef __do_advection_parameterization(self) nogil:
+        """Add the advection parameterization"""
+        cdef Py_ssize_t k, j, i
+        u_full = self.ufull
+        v_full = self.vfull
+        du, dv = self.parameterization(u_full, v_full)
+        # convert to spectral space
+        duh = self.u_to_uh(du)
+        dvh = self.v_to_vh(dv)
+
+        # TODO do it for all layers
+        for k in range(1):
+            for j in prange(self.nl, nogil=True, schedule='static',
+                      chunksize=self.chunksize,
+                      num_threads=self.num_threads):
+                for i in range(self.nk):
+                    # overwrite the tendency, since the forcing gets called after
+                    # TODO add back k when doing this for all layers
+                    self.dqhdt[k,j,i] += -( self._ik[i] * self.duh[j,i] +
+                                            self._il[j] * self.dvh[j,i] +
+                                            self._ikQy[k,i] * self.ph[k,j,i] )
         return
 
     def _do_friction(self):
