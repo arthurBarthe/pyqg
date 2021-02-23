@@ -96,7 +96,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # Load the neural network used as parameterization
 # Prompts the user to select a trained model to be used as parameterization
 models_experiment_id, _ = select_experiment()
-cols = ['metrics.test loss', 'start_time', 'params.time_indices',
+cols = ['metrics.test loss', 'params.time_indices',
         'params.model_cls_name', 'params.source.run_id', 'params.submodel']
 model_run = select_run(sort_by='start_time', cols=cols,
                        experiment_ids=[models_experiment_id, ])
