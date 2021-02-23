@@ -386,8 +386,8 @@ cdef class PseudoSpectralKernel:
         self.du[0, :, :] = du_
         self.dv[0, :, :] = dv_
         # convert to spectral space
-        self.u_to_uh()
-        self.v_to_vh()
+        self.fft_u_to_uh()
+        self.fft_v_to_vh()
         # TODO do it for all layers
         for k in range(1):
             for j in prange(self.nl, nogil=True, schedule='static',
