@@ -153,10 +153,14 @@ cdef class PseudoSpectralKernel:
         self.vqh = vqh
 
         # adv param
-        self.du = self._empty_real()
-        self.dv = self._empty_real()
-        self.duh = self._empty_com()
-        self.dvh = self._empty_com()
+        du = self._empty_real()
+        dv = self._empty_real()
+        duh = self._empty_com()
+        dvh = self._empty_com()
+        self.du = du
+        self.dv = dv
+        self.duh = duh
+        self.dvh = dvh
 
         # dummy variables for diagnostic ffts
         dfftin = self._empty_real()
@@ -371,7 +375,7 @@ cdef class PseudoSpectralKernel:
     cdef __do_advection_parameterization(self):
         """Add the advection parameterization"""
         cdef Py_ssize_t k, j, i
-        du, dv = self.parameterization(self.ufull, self.vfull)
+        du, dv = self.parameterization(self.ufull[0, ...], self.vfull[0, ...])
         self.du[0, ...] = du
         self.dv[0, ...] = dv
         # convert to spectral space
