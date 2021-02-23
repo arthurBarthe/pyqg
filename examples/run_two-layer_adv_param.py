@@ -5,7 +5,7 @@ import torch
 import logging
 import mlflow
 import sys
-sys.path.append('/home/ag7531/code/subgrid/')
+sys.path.append('/home/ag7531/code/')
 from subgrid.models.utils import load_model_cls
 from subgrid.utils import select_experiment, select_run
 from subgrid.testing.utils import pickle_artifact
