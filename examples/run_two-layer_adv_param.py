@@ -6,6 +6,8 @@ import logging
 import mlflow
 import sys
 sys.path.append('/home/ag7531/code/')
+sys.path.append('/home/ag7531/code/subgrid')
+
 from subgrid.models.utils import load_model_cls
 from subgrid.utils import select_experiment, select_run
 
