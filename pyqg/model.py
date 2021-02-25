@@ -350,14 +350,14 @@ class Model(PseudoSpectralKernel):
         self._do_advection()
         # use streamfunction to calculate advection tendency
 
-        if hasattr(self, 'parameterization'):
-            self._do_advection_parameterization()
-
         self._do_friction()
         # apply friction
 
         self._do_external_forcing()
         # apply external forcing
+
+        if hasattr(self, 'parameterization'):
+            self._do_advection_parameterization()
 
         self._calc_diagnostics()
         # do what has to be done with diagnostics

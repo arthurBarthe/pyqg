@@ -387,14 +387,12 @@ cdef class PseudoSpectralKernel:
         # convert to spectral space
         self.fft_u_to_uh()
         self.fft_v_to_vh()
-        # TODO do it for all layers
         for k in range(self.nz):
             for j in prange(self.nl, nogil=True, schedule='static',
                       chunksize=self.chunksize,
                       num_threads=self.num_threads):
                 for i in range(self.nk):
                     # overwrite the tendency, since the forcing gets called after
-                    # TODO add back k when doing this for all layers
                     self.dqhdt[k,j,i] = (
                                         self.dqhdt[k,j,i] +
                                         ( self._ik[i] * self.duh[k, j,i] +
