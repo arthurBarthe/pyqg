@@ -51,10 +51,10 @@ class Parameterization:
                 output_tensor = self.nn.forward(input_tensor)
                 mean_sx, mean_sy, beta_sx, beta_sy = torch.split(output_tensor,
                                                                  1, dim=1)
-                mean_sx = mean_sx.cpu().numpy()
-                mean_sy = mean_sy.cpu().numpy()
-                beta_sx = beta_sx.cpu().numpy()
-                beta_sy = beta_sy.cpu().numpy()
+                mean_sx = mean_sx.cpu().numpy().squeeze()
+                mean_sy = mean_sy.cpu().numpy().squeeze()
+                beta_sx = beta_sx.cpu().numpy().squeeze()
+                beta_sy = beta_sy.cpu().numpy().squeeze()
                 self.apply_mult_factor(mean_sx, mean_sy, beta_sx, beta_sy)
                 self.means['s_x'] = mean_sx
                 self.means['s_y'] = mean_sy
