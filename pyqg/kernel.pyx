@@ -387,7 +387,7 @@ cdef class PseudoSpectralKernel:
         # convert to spectral space
         self.fft_u_to_uh()
         self.fft_v_to_vh()
-        for k in range(self.nz):
+        for k in range(1):
             for j in prange(self.nl, nogil=True, schedule='static',
                       chunksize=self.chunksize,
                       num_threads=self.num_threads):
