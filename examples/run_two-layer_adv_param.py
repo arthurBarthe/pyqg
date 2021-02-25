@@ -132,7 +132,7 @@ print('*******************')
 
 parameterization = Parameterization(net, device)
 
-m = pyqg.QGModel(tavestart=0,  dt=8000, nx=128//4, ny=128//4, L=128*1e4)
+m = pyqg.QGModel(tavestart=0,  dt=8000, nx=64//4, ny=64//4, L=64*1e4)
 m.parameterization = parameterization
 
 for snapshot in m.run_with_snapshots(
