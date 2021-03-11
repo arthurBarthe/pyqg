@@ -395,8 +395,8 @@ cdef class PseudoSpectralKernel:
                     # overwrite the tendency, since the forcing gets called after
                     self.dqhdt[k,j,i] = (
                                         self.dqhdt[k,j,i] +
-                                        ( self._ik[i] * self.duh[k, j,i] +
-                                        self._il[j] * self.dvh[k, j,i] )
+                                        (- self._il[j] * self.duh[k, j,i] +
+                                        self._ik[i] * self.dvh[k, j, i] )
                                         )
         return
 
