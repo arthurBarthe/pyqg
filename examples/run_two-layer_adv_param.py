@@ -5,6 +5,9 @@ import torch
 import logging
 import mlflow
 import sys
+
+from utils import energy_budget
+
 sys.path.append('/home/ag7531/code/')
 sys.path.append('/home/ag7531/code/subgrid')
 
@@ -17,7 +20,7 @@ class Parameterization:
     trained neural network. To be used within an object of type
     WaterModelWithDLParameterization."""
     def __init__(self, nn, device, mult_factor: float = 1.,
-                 every: int = 4, every_noise: int = 4, force_zero_sum: bool =
+                 every: int = 1, every_noise: int = 1, force_zero_sum: bool =
                  False, periodic=True):
         self.nn = nn.to(device=device)
         self.device = device
@@ -132,7 +135,7 @@ print('*******************')
 
 parameterization = Parameterization(net, device)
 
-m = pyqg.QGModel(tavestart=0,  dt=8000, nx=256 // 4, L = 1e6,
+m = pyqg.QGModel(tavestart=0,  dt=8000 / 2, nx=256 // 4, L = 1e6,
                  filterfac=23.6)
 # Add parameterization (both layers)
 m.parameterization = parameterization
@@ -144,5 +147,7 @@ for snapshot in m.run_with_snapshots(
     plt.clim([0, m.Qy1 * m.W])
     plt.pause(0.01)
     plt.draw()
-    
-# now the model is done
+    print("EKE: ", m.get_diagnostic('EKE'))
+
+energy_budget(m)
+plt.show()
