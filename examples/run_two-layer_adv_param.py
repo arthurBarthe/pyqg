@@ -151,3 +151,5 @@ for snapshot in m.run_with_snapshots(
 
 energy_budget(m)
 plt.show()
+
+plt.figure()
