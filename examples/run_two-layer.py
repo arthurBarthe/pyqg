@@ -5,7 +5,7 @@ import pyqg
 from utils import energy_budget
 
 m = pyqg.QGModel(tavestart=0,  dt=8000 / 2, nx=256 // 4, L = 1e6,
-                 filterfac=23.6)
+                 filterfac=23.6, tmax=8000 * 1000 * 15)
 
 for snapshot in m.run_with_snapshots(
         tsnapstart=0, tsnapint=1000*m.dt):

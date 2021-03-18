@@ -8,6 +8,10 @@ def energy_budget(m):
         axis=0)  # note that this is misleading for anisotrphic flows...
     KE2spec = m.get_diagnostic('KEspec')[1].sum(
         axis=0)  # we should sum azimuthaly, and plot as a functions of kappa
+    try:
+        param_spec = m.get_diagnostic('ADVECparam')[0].sum(axis=0)
+    except:
+        print('Could not find the parameterization diagnostic')
 
     # factor ebud
     ebud_factor = 1.e4
@@ -20,6 +24,10 @@ def energy_budget(m):
     ax1 = fig.add_subplot(121)
     ax1.loglog(m.kk, KE1spec, '.-')
     ax1.loglog(m.kk, KE2spec, '.-')
+    try:
+        ax1.loglog(m.kk, param_spec, '-*')
+    except:
+        print('Spectrum of parameterization not defined')
     ax1.loglog(m.kk[10:20], 2 * (m.kk[ir] ** -3) *
                KE1spec[ir].mean() / (m.kk[ir] ** -3).mean(),
                '0.5')
@@ -38,7 +46,8 @@ def energy_budget(m):
             -m.rek * m.del2 * m.get_diagnostic('KEspec')[1].sum(
                 axis=0) * m.M ** 2]
     ebud.append(-np.vstack(ebud).sum(axis=0))
-    ebud_labels = ['APE gen', 'APE flux', 'KE flux', 'Diss.', 'Resid.']
+    ebud_labels = ['APE gen', 'APE flux', 'KE flux', 'Diss.', 'Resid.',
+                   'param.']
 
     ax2 = fig.add_subplot(122)
     [ax2.semilogx(m.kk, term) for term in ebud]
