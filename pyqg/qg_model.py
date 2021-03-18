@@ -280,12 +280,7 @@ class QGModel(model.Model):
                             (self.M**2) )
         )
 
-        # Diagnostic for the parameterization
-        if hasattr(self, 'parameterization'):
-            self.add_diagnostic('ADVECparam',
-                                description='Spectrum of the parameterization',
-                                function=lambda self: np.abs(
-                                    self.duh)**2/self.M**2)
+
 
         ### These generic diagnostics are now calculated in model.py ###
         # self.add_diagnostic('KE1spec',

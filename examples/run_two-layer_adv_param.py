@@ -139,11 +139,16 @@ m = pyqg.QGModel(tavestart=0,  dt=8000 / 2, nx=256 // 4, L = 1e6,
                  filterfac=23.6)
 # Add parameterization (both layers)
 m.parameterization = parameterization
+# Diagnostic for the parameterization
+m.add_diagnostic('ADVECparam',
+                description='Spectrum of the parameterization',
+                function=lambda self: np.abs(self.duh)**2/self.M**2
+                 )
 
 for snapshot in m.run_with_snapshots(
         tsnapstart=0, tsnapint=1000*m.dt):
     plt.clf()
-    plt.imshow(m.q[0] + m.Qy1 * m.y)
+    plt.imshow(np.abs(m.duh)**2 + np.abs(m.dvh)**2)
     plt.clim([0, m.Qy1 * m.W])
     plt.pause(0.01)
     plt.draw()
