@@ -568,9 +568,15 @@ cdef class PseudoSpectralKernel:
     property du:
         def __get__(self):
             return np.asarray(self.du)
+    property duh:
+        def __get__(self):
+            return np.asarray(self.duh)
     property dv:
         def __get__(self):
             return np.asarray(self.dv)
+    property dvh:
+        def __get__(self):
+            return np.asarray(self.dvh)
     property ufull:
         def __get__(self):
             return np.asarray(self.u) + \
