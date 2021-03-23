@@ -148,7 +148,7 @@ m.add_diagnostic('ADVECparam',
 for snapshot in m.run_with_snapshots(
         tsnapstart=0, tsnapint=1000*m.dt):
     plt.clf()
-    plt.imshow(np.abs(m.duh)**2 + np.abs(m.dvh)**2)
+    plt.imshow(np.abs(m.duh[0])**2 + np.abs(m.dvh[0])**2)
     plt.clim([0, m.Qy1 * m.W])
     plt.pause(0.01)
     plt.draw()
