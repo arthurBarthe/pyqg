@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from pyqg.model import Model
+from matplotlib import animation
 
 def energy_budget(m):
     # some spectral plots
@@ -60,3 +61,20 @@ def energy_budget(m):
     ax2.set_title(r'      Spectral Energy Budget')
 
     ax2.set_xlabel(r'k (m$^{-1})$')
+
+def play_movie(predictions: np.ndarray, title: str = '',
+               interval: int = 500):
+    fig = plt.figure()
+    ims = list()
+    mean = np.mean(predictions)
+    std = np.std(predictions)
+    vmin, vmax = mean - std, mean + std
+    for im in predictions:
+        ims.append([plt.imshow(im, vmin=vmin, vmax=vmax,
+                               cmap='YlOrRd',
+                               origin='lower', animated=True)])
+    ani = animation.ArtistAnimation(fig, ims, interval=interval, blit=True,
+                                    repeat_delay=1000)
+    plt.title(title)
+    plt.show()
+    return ani
