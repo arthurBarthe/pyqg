@@ -1,22 +1,29 @@
 import numpy as np
 from matplotlib import pyplot as plt
 import pyqg
+from pathlib import Path
 
 from utils import energy_budget
 
-m = pyqg.QGModel(tavestart=0,  dt=8000 / 2, nx=256 // 4, L = 1e6,
-                 filterfac=23.6, tmax=8000 * 1000 * 15)
+path_output_dir = Path('/media/arthur/DATA/Data sets/outputs/pyqg/')
+size = 256
+m = pyqg.QGModel(tavestart=0,  dt=8000 / 2, nx=size, L = 1e6,
+                 filterfac=23.6)
 
+snapshots = dict(q=[], u=[], v=[])
 for snapshot in m.run_with_snapshots(
-        tsnapstart=0, tsnapint=1000*m.dt):
-    plt.clf()
-    plt.imshow(m.q[0] + m.Qy1 * m.y)
-    plt.clim([0, m.Qy1 * m.W])
-    plt.colorbar()
-    plt.pause(0.01)
-    plt.draw()
+        tsnapstart=0, tsnapint=2000*m.dt):
+    for var in ('q', 'u', 'v'):
+        arr = np.asarray(getattr(m, var).copy())
+        snapshots[var].append(arr)
     print("EKE: ", m.get_diagnostic('EKE'))
+
 # now the model is done
 
+for var in ('q', 'u', 'v'):
+    video = np.stack(snapshots[var], axis=0)
+    assert not np.all(video[0, ...] == video[10, ...])
+    np.save(path_output_dir / f'video_{var}_{size}', video)
+
 energy_budget(m)
-plt.show()
+plt.savefig(path_output_dir / f'energy_budget{size}.jpg', dpi=400)

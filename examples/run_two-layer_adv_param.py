@@ -14,6 +14,7 @@ sys.path.append('/home/ag7531/code/subgrid')
 from subgrid.models.utils import load_model_cls
 from subgrid.utils import select_experiment, select_run
 from subgrid.utils import pickle_artifact
+from pathlib import Path
 
 class Parameterization:
     """Defines a parameterization of subgrid momentum forcing bases on a
@@ -135,24 +136,29 @@ print('*******************')
 
 parameterization = Parameterization(net, device)
 
-m = pyqg.QGModel(tavestart=0,  dt=8000 / 2, nx=256 // 4, L = 1e6,
-                 filterfac=23.6)
+m = pyqg.QGModel(tavestart=0,  dt=8000 / 2, nx=256 // 4, L = 1e6)
 # Add parameterization (both layers)
 m.parameterization = parameterization
 # Diagnostic for the parameterization
-m.add_diagnostic('ADVECparam',
-                description='Spectrum of the parameterization',
-                function=lambda self: np.abs(self.duh)**2/self.M**2
-                 )
+# m.add_diagnostic('ADVECparam',
+#                 description='Spectrum of the parameterization',
+#                 function=lambda self: np.abs(self.duh)**2/self.M**2
+#                  )
 
+path_output_dir = Path('/scratch/ag7531/pyqg_output')
+size = 256 // 4
+snapshots = dict(q=[], u=[], v=[])
 for snapshot in m.run_with_snapshots(
         tsnapstart=0, tsnapint=1000*m.dt):
-    plt.clf()
-    plt.imshow(np.abs(m.du[0])**2 + np.abs(m.dvs[0])**2)
-    plt.clim([0, m.Qy1 * m.W])
-    plt.pause(0.01)
-    plt.draw()
+    for var in ('q', 'u', 'v'):
+        arr = np.asarray(getattr(m, var).copy())
+        snapshots[var].append(arr)
     print("EKE: ", m.get_diagnostic('EKE'))
 
+for var in ('q', 'u', 'v'):
+    video = np.stack(snapshots[var], axis=0)
+    assert not np.all(video[0, ...] == video[10, ...])
+    np.save(path_output_dir / f'video_{var}_{size}_param', video)
+
 energy_budget(m)
-plt.show()
+plt.savefig(path_output_dir / f'energy_budget{size}_param.jpg', dpi=400)
