@@ -148,8 +148,9 @@ m.add_diagnostic('ADVECparam',
 for snapshot in m.run_with_snapshots(
         tsnapstart=0, tsnapint=100*m.dt):
     plt.clf()
-    plt.imshow(np.abs(m.du[0])**2 + np.abs(m.dvs[0])**2)
-    plt.clim([0, m.Qy1 * m.W])
+    plt.imshow(m.q[0])
+    if np.all(m.duh == 0):
+        print('all zero...')
     plt.pause(0.01)
     plt.draw()
     print("EKE: ", m.get_diagnostic('EKE'))
