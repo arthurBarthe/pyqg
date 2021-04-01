@@ -157,7 +157,7 @@ for snapshot in m.run_with_snapshots(
     try:
         print("EKE: ", m.get_diagnostic('EKE'))
     except:
-        logging.log('EKE not available yet')
+        logging.debug('EKE not available yet')
 
 for var in ('q', 'u', 'v'):
     video = np.stack(snapshots[var], axis=0)
