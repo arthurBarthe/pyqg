@@ -135,9 +135,10 @@ print(net)
 print('*******************')
 
 parameterization = Parameterization(net, device)
-
-m = pyqg.QGModel(tavestart=0,  dt=8000 / 2, nx=256 // 4, L = 1e6)
-# Add parameterization (both layers)
+size = 256 // 4
+year = 365 * 24 * 3600
+m = pyqg.QGModel(tavestart=10 * year, dt=8000 / 2, nx=size,
+                 L = 1e6)# Add parameterization (both layers)
 m.parameterization = parameterization
 # Diagnostic for the parameterization
 # m.add_diagnostic('ADVECparam',
@@ -146,14 +147,17 @@ m.parameterization = parameterization
 #                  )
 
 path_output_dir = Path('/scratch/ag7531/pyqg_output')
-size = 256 // 4
+
 snapshots = dict(q=[], u=[], v=[])
 for snapshot in m.run_with_snapshots(
-        tsnapstart=0, tsnapint=1000*m.dt):
+        tsnapstart=0, tsnapint=2000*m.dt):
     for var in ('q', 'u', 'v'):
         arr = np.asarray(getattr(m, var).copy())
         snapshots[var].append(arr)
-    print("EKE: ", m.get_diagnostic('EKE'))
+    try:
+        print("EKE: ", m.get_diagnostic('EKE'))
+    except:
+        logging.log('EKE not available yet')
 
 for var in ('q', 'u', 'v'):
     video = np.stack(snapshots[var], axis=0)
