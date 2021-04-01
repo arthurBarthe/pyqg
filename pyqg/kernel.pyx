@@ -381,12 +381,14 @@ cdef class PseudoSpectralKernel:
         """Add the advection parameterization"""
         cdef Py_ssize_t k, j, i
         du, dv = self.parameterization(self.ufull, self.vfull)
+        cdef DTYPE_real_t [:, :, :] du_view = du
+        cdef DTYPE_real_t [:, :, :] dv_view = dv
         # convert to cython memory view
-        self.du = du
-        self.dv = dv
+        self.du[:, :, :] = du_view
+        self.dv[:, :, :] = dv_view
         # convert to spectral space
         self.fft_u_to_uh()
-        self.fft_v_to_vh()
+        self.fft_v_to_vh.execute()
         for k in range(self.nz):
             for j in prange(self.nl, nogil=True, schedule='static',
                       chunksize=self.chunksize,
