@@ -138,8 +138,7 @@ parameterization = Parameterization(net, device)
 size = 256 // 4
 year = 365 * 24 * 3600
 m = pyqg.QGModel(tavestart=10 * year, dt=8000 / 2, nx=size,
-                 L = 1e6)# Add parameterization (both layers)
-m.parameterization = parameterization
+                 L = 1e6, parameterization=parameterization)# Add parameterization (both layers)
 # Diagnostic for the parameterization
 # m.add_diagnostic('ADVECparam',
 #                 description='Spectrum of the parameterization',
