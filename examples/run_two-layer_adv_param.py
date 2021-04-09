@@ -137,7 +137,7 @@ print('*******************')
 parameterization = Parameterization(net, device)
 size = 256 // 4
 year = 365 * 24 * 3600
-m = pyqg.QGModel(tavestart=10 * year, dt=8000 / 2, nx=size,
+m = pyqg.QGModel(tavestart=1 * year, tmax=20 * year, dt=8000 / 2, nx=size,
                  L = 1e6)# Add parameterization (both layers)
 m.parameterization = parameterization
 # Diagnostic for the parameterization
