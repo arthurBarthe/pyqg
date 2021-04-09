@@ -288,8 +288,8 @@ class QGModel(model.Model):
             d2 = m.del2
             F1 = m.F1
             F2 = m.F2
-            ik = m._ik
-            il = m._il
+            ik = np.asarray(m._ik)
+            il = np.asarray(m._il)
             sx_1 = m.duh[0]
             sx_2 = m.duh[1]
             sy_1 = m.dvh[0]
