@@ -48,7 +48,6 @@ def energy_budget(m):
             m.rek * m.del2 * m.get_diagnostic('KEspec')[1].sum(
                 axis=0) * m.M ** 2]
     ebud.append(-np.vstack(ebud).sum(axis=0))
-    if hasattr(m, 'parameterization'):
     ebud_labels = ['APE gen', 'APE flux', 'KE flux', 'Bottom drag diss.',
                     'parameterization', 'Resid.']
 
