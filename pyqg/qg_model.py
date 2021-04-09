@@ -239,7 +239,8 @@ class QGModel(model.Model):
         self.Jpxi = self._advect(self.xi, self.u, self.v)
 
     def _initialize_model_diagnostics(self):
-        """Extra diagnostics for two-layer model"""
+        """Extra diagnostics for two-layer model
+        """
 
         self.add_diagnostic('entspec',
             description='barotropic enstrophy spectrum',
@@ -279,6 +280,42 @@ class QGModel(model.Model):
                             np.conj(self.ph[0,:,1:-2] - self.ph[1,:,1:-2])).sum()) /
                             (self.M**2) )
         )
+
+        def func(m):
+            d1 = m.del1
+            d2 = m.del2
+            F1 = m.F1
+            F2 = m.F2
+            ik = m._ik
+            il = m._il
+            sx_1 = m.duh[0]
+            sx_2 = m.duh[1]
+            sy_1 = m.dvh[0]
+            sy_2 = m.dvh[1]
+
+            ksq = m.wv2
+            return np.real(
+                d1 / (ksq + F1 + F2) * (
+                    -(ksq + F2) * (-il * sx_1 + ik * sy_1)
+                    - F1 * (-il * sx_2 + ik * sy_2)
+                ) * np.conj(m.ph[0])
+                +
+                d2 / (ksq + F1 + F2) * (
+                        -F2 * (-il * sx_1 + ik * sy_1)
+                        - (ksq + F1) * (-il * sx_2 + ik * sy_2)
+                ) * np.conj(m.ph[1])
+                +
+                d1 * F1 / (ksq + F1 + F2) * (
+                        (il * sx_1 - ik * sy_1)
+                        - (-il * sx_2 + ik * sy_2)
+                ) * np.conj(m.ph[0] - m.ph[1])
+            )
+        if not hasattr(self, 'parameterization'):
+            func = lambda m: 0.
+        self.add_diagnostic('adv_param',
+                            description='Spectral contribution of param',
+                            function = func)
+
 
 
 

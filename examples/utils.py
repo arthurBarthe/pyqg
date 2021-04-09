@@ -44,10 +44,13 @@ def energy_budget(m):
     ebud = [-m.get_diagnostic('APEgenspec').sum(axis=0),
             -m.get_diagnostic('APEflux').sum(axis=0),
             -m.get_diagnostic('KEflux').sum(axis=0),
+            m.get_diagnostic('adv_param').sum(axis=0),
             m.rek * m.del2 * m.get_diagnostic('KEspec')[1].sum(
                 axis=0) * m.M ** 2]
     ebud.append(-np.vstack(ebud).sum(axis=0))
-    ebud_labels = ['APE gen', 'APE flux', 'KE flux', 'Diss.', 'Resid.']
+    if hasattr(m, 'parameterization'):
+    ebud_labels = ['APE gen', 'APE flux', 'KE flux', 'Bottom drag diss.',
+                    'parameterization', 'Resid.']
 
     ax2 = fig.add_subplot(122)
     [ax2.semilogx(m.kk, term) for term in ebud]
