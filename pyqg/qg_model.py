@@ -98,7 +98,7 @@ class QGModel(model.Model):
         self.U2 = U2
         #self.filterfac = filterfac
         if 'parameterization' in kwargs.keys():
-            self.parameterization = kwargs['parameterization']
+            self.parameterization = kwargs.pop('parameterization')
 
 
         super(QGModel, self).__init__(nz=2, **kwargs)
