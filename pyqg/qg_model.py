@@ -312,8 +312,8 @@ class QGModel(model.Model):
                         - (-il * sx_2 + ik * sy_2)
                 ) * np.conj(m.ph[0] - m.ph[1])
             )
-        if not hasattr(self, 'parameterization'):
-            func = lambda m: 0.
+        if (not hasattr(self, 'parameterization')) or True:
+            func = lambda m: np.zeros_like(m.wv2)
         self.add_diagnostic('adv_param',
                             description='Spectral contribution of param',
                             function = func)
