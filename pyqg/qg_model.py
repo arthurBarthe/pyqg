@@ -288,8 +288,8 @@ class QGModel(model.Model):
             d2 = m.del2
             F1 = m.F1
             F2 = m.F2
-            ik = np.asarray(m._ik).reshape((1, -1)).repeat(m.wv2.shape[0], axis=0).shape
-            il = np.asarray(m._il).reshape((-1, 1)).repeat(m.wv2.shape[-1], axis=-1).shape
+            ik = np.asarray(m._ik).reshape((1, -1)).repeat(m.wv2.shape[0], axis=0)
+            il = np.asarray(m._il).reshape((-1, 1)).repeat(m.wv2.shape[-1], axis=-1)
             sx_1 = m.duh[0]
             sx_2 = m.duh[1]
             sy_1 = m.dvh[0]
@@ -312,8 +312,8 @@ class QGModel(model.Model):
                         - (-il * sx_2 + ik * sy_2)
                 ) * np.conj(m.ph[0] - m.ph[1])
             )
-        if not hasattr(self, 'parameterization'):
-            func = lambda m: 0.
+        if (not hasattr(self, 'parameterization')) or True:
+            func = lambda m: np.zeros_like(m.wv2)
         self.add_diagnostic('adv_param',
                             description='Spectral contribution of param',
                             function = func)
