@@ -165,5 +165,4 @@ for var in ('q', 'u', 'v'):
     assert not np.all(video[0, ...] == video[10, ...])
     np.save(path_output_dir / f'video_{var}_{size}_param', video)
 
-energy_budget(m)
-plt.savefig(path_output_dir / f'energy_budget{size}_param.jpg', dpi=400)
+energy_budget(m, path_output_dir, f'{size}_param')
