@@ -78,10 +78,10 @@ def to_radial(kx, ky, psd2d):
 
 def energy_budget(m, path_output_dir: str = None, size: int = None):
     # some spectral plots
-    KE1spec = m.get_diagnostic('KEspec')[0].sum(
-        axis=0)  # note that this is misleading for anisotrphic flows...
-    KE2spec = m.get_diagnostic('KEspec')[1].sum(
-        axis=0)  # we should sum azimuthaly, and plot as a functions of kappa
+    KE1spec = m.get_diagnostic('KEspec')[0]
+    KE2spec = m.get_diagnostic('KEspec')[1]
+    k, KE1spec = to_radial(m.k, m.l, KE1spec)
+    k, KE2spec = to_radial(m.k, m.l, KE2spec)
     try:
         param_spec = m.get_diagnostic('ADVECparam')[0].sum(axis=0)
     except:
@@ -96,17 +96,17 @@ def energy_budget(m, path_output_dir: str = None, size: int = None):
 
     fig = plt.figure(figsize=(16., 7.))
     ax1 = fig.add_subplot(121)
-    ax1.loglog(m.kk, KE1spec, '.-')
-    ax1.loglog(m.kk, KE2spec, '.-')
+    ax1.loglog(k, KE1spec, '.-')
+    ax1.loglog(k, KE2spec, '.-')
     try:
         ax1.loglog(m.kk, param_spec, '-*')
     except:
         print('Spectrum of parameterization not defined')
-    ax1.loglog(m.kk[10:20], 2 * (m.kk[ir] ** -3) *
-               KE1spec[ir].mean() / (m.kk[ir] ** -3).mean(),
+    ax1.loglog(k[10:20], 2 * (k[ir] ** -3) *
+               KE1spec[ir].mean() / (k[ir] ** -3).mean(),
                '0.5')
     ax1.set_ylim([1e-9, 1e-3])
-    ax1.set_xlim([m.kk.min(), m.kk.max()])
+    ax1.set_xlim([k.min(), k.max()])
     ax1.grid()
     ax1.legend(['upper layer', 'lower layer', r'$k^{-3}$'],
                loc='lower left')
