@@ -34,12 +34,17 @@ class Parameterization:
         self.counter_0 = 0
         self.counter_1 = 0
         self.periodic = periodic
+        self.start = 1e4
+        self.i_call = 0
 
     def __call__(self, u, v):
         """Return the two components of the forcing given the coarse
         velocities. The velocities are expected so sit on the same grid
         points. The returned forcing also sits on those grid points."""
         # Scaling required by the nn
+        self.i_call += 1
+        if self.i_call < self.start:
+            return np.zeros_like(u), np.zeros_like(v)
         u *= 10
         v *= 10
         if self.periodic:
@@ -134,7 +139,7 @@ print('*******************')
 print(net)
 print('*******************')
 
-parameterization = Parameterization(net, device)
+parameterization = Parameterization(net, device, every_noise=10)
 size = 256 // 4
 year = 365 * 24 * 3600
 m = pyqg.QGModel(tavestart=10 * year, dt=8000 / 6, nx=size,
