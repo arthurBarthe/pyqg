@@ -396,8 +396,8 @@ cdef class PseudoSpectralKernel:
                 for i in range(self.nk):
                     self.dqhdt[k,j,i] = (
                                         self.dqhdt[k,j,i] +
-                                        (- self._il[j] * self.duh[k, j,i] +
-                                        self._ik[i] * self.dvh[k, j, i] )
+                                        (self._il[j] * self.duh[k, j,i] +
+                                        -self._ik[i] * self.dvh[k, j, i] )
                                         )
         return
 
