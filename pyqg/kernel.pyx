@@ -388,7 +388,7 @@ cdef class PseudoSpectralKernel:
         self.dv[:, :, :] = dv_view
         # convert to spectral space
         self.fft_u_to_uh()
-        self.fft_v_to_vh.execute()
+        self.fft_v_to_vh()
         for k in range(self.nz):
             for j in prange(self.nl, nogil=True, schedule='static',
                       chunksize=self.chunksize,
@@ -396,8 +396,8 @@ cdef class PseudoSpectralKernel:
                 for i in range(self.nk):
                     self.dqhdt[k,j,i] = (
                                         self.dqhdt[k,j,i] +
-                                        (self._il[j] * self.duh[k, j,i] +
-                                        -self._ik[i] * self.dvh[k, j, i] )
+                                        (-self._il[j] * self.duh[k, j,i] +
+                                        +self._ik[i] * self.dvh[k, j, i] )
                                         )
         return
 
