@@ -4,6 +4,8 @@ import numpy
 from pyqg.model import Model
 from matplotlib import animation
 from scipy.fft import fftshift
+from scipy.ndimage import gaussian_filter
+from numpy.fft import fft2, fftshift, fftn, ifft2, fftfreq
 
 # Function below from
 # https://github.com/fatiando/fatiando/blob/master/fatiando/gravmag/transform.py
@@ -53,7 +55,7 @@ def radial_average_spectrum(kx, ky, pds, max_radius=None, ring_width=None):
     k = numpy.sqrt(kx**2 + ky**2)
     pds_radial = []
     k_radial = []
-    radius_i = -1
+    radius_i = 0
     while True:
         radius_i += 1
         if radius_i*ring_width > max_radius:
@@ -80,6 +82,9 @@ def energy_budget(m, path_output_dir: str = None, size: int = None):
     # some spectral plots
     KE1spec = m.get_diagnostic('KEspec')[0]
     KE2spec = m.get_diagnostic('KEspec')[1]
+    # k = m.kk
+    # KE1spec = KE1spec.sum(axis=0)
+    # KE2spec = KE2spec.sum(axis=0)
     k, KE1spec = to_radial(m.k, m.l, KE1spec)
     k, KE2spec = to_radial(m.k, m.l, KE2spec)
     try:
@@ -152,12 +157,13 @@ def energy_budget(m, path_output_dir: str = None, size: int = None):
         plt.savefig(path_output_dir / f'energy_budget2D{size}.jpg', dpi=600)
 
 def play_movie(predictions: np.ndarray, title: str = '',
-               interval: int = 500):
+               interval: int = 500, vmin=None, vmax=None):
     fig = plt.figure()
     ims = list()
     mean = np.mean(predictions)
     std = np.std(predictions)
-    vmin, vmax = mean - std, mean + std
+    if vmin is None:
+        vmin, vmax = mean - 2 * std, mean + 2 * std
     for im in predictions:
         ims.append([plt.imshow(im, vmin=vmin, vmax=vmax,
                                cmap='YlOrRd',
@@ -167,3 +173,127 @@ def play_movie(predictions: np.ndarray, title: str = '',
     plt.title(title)
     plt.show()
     return ani
+
+def coarsen(data, factor: int = 4, axes=(-1, -2)):
+    scales = [0] * data.ndim
+    for i in axes:
+        scales[i] = factor / 2.
+    filtered = gaussian_filter(data, scales)
+    result = np.zeros((data.shape[0:2]) + (data.shape[2] // factor,
+                                           data.shape[3] // factor))
+    for i in range(factor):
+        for j in range(factor):
+            result += filtered[..., i::factor, j::factor]
+    return result / factor**2
+
+def fft_coarsen(data, factor: int = 4, axes=(-1, -2)):
+    spec = fft2(data)
+    k_x = fftfreq(spec.shape[-1])
+    k_y = fftfreq(spec.shape[-2])
+    k_x, k_y = np.meshgrid(k_x, k_y, indexing='ij')
+    sel = np.maximum(abs(k_x), abs(k_y)) > (1/2/factor)
+    print(sel.shape)
+    sel = sel.reshape((1, 1, sel.shape[0], sel.shape[1]))
+    sel = sel.repeat(spec.shape[1], axis=1)
+    sel = sel.repeat(spec.shape[0], axis=0)
+    print(sel.shape)
+    spec[sel] = 0
+    result = np.zeros((data.shape[0:2]) + (data.shape[2] // factor,
+                                           data.shape[3] // factor))
+    data = np.real(ifft2(spec))
+    for i in range(factor):
+        for j in range(factor):
+            result += data[..., i::factor, j::factor]
+    return result / factor**2
+
+def spatial_spectrum(uv, radial: bool = True, co: bool = False,
+                     L: float = 1.2e3):
+    if uv.ndim == 3:
+        uv = uv.reshape((1,) + uv.shape)
+    uv = uv[:, 0, ...] + 1j * uv[:, 1, ...]
+    dx = L / uv.shape[-1]
+    dy = L / uv.shape[-2]
+    print('dx', dx)
+    if not co:
+        spectrum_2d = dx * dy / (uv.shape[-1] * uv.shape[-2]) * abs(fft2(uv))**2
+    else:
+        spectrum_2d = dx * dy / (uv.shape[-1] * uv.shape[-2]) * abs(fft2(uv)**2)
+    # Time-average of spatial spectra
+    spectrum_2d = spectrum_2d.mean(axis=0)
+    if not radial:
+        return spectrum_2d
+    k_x = fftfreq(spectrum_2d.shape[0]) / dx
+    k_y = fftfreq(spectrum_2d.shape[1]) / dy
+    k_x, k_y = np.meshgrid(k_x, k_y, indexing='ij')
+    print('max', np.max(k_x))
+    return radial_average_spectrum(k_x, k_y, spectrum_2d)
+
+
+
+def spatio_temporal_spectrum(uv):
+    uv = uv[:, 0, ...] + 1j * uv[:, 1, ...]
+    shape = uv.shape
+    return 1 / (shape[0] * shape[1] * shape[2])**2 * abs(fftn(uv))**2
+
+def _initialize_filter(m, n):
+    """Set up frictional filter."""
+    # this defines the spectral filter (following Arbic and Flierl, 2003)
+    cphi=0.65*np.pi
+    k = fftfreq(m) * 2 * np.pi
+    l = fftfreq(n) * 2 * np.pi
+    k, l = np.meshgrid(k, l, indexing='ij')
+    wvx=np.sqrt(k**2. + l**2)
+    filtr = np.exp(-23.6*(wvx-cphi)**4.)
+    filtr[wvx<=cphi] = 1.
+    return filtr
+
+
+def same_freq_grid(spec1, spec2):
+    shape1 = spec1.shape
+    shape2 = spec2.shape
+    if shape1[-1] > shape2[-1]:
+        spec2, spec1 = same_freq_grid(spec2, spec1)
+        return spec1, spec2
+    block1 = spec2[..., :shape1[-2] // 2 + 1, :shape1[-1] // 2 + 1]
+    block2 = spec2[..., -shape1[-2] // 2 + 1:, :shape1[-1] // 2 + 1]
+    block3 = spec2[..., -shape1[-2] // 2 + 1:, -shape1[-1] // 2 + 1:]
+    block4 = spec2[..., :shape1[-2] // 2 + 1, -shape1[-1] // 2 + 1:]
+    block1 = np.concatenate((block1, block4), axis=-1)
+    block2 = np.concatenate((block2, block3), axis=-1)
+    result = np.concatenate((block1, block2), axis=-2)
+    return spec1, result
+
+
+def kullback_leibler(uv1, uv2, temporal=True):
+    spec1 = spatio_temporal_spectrum(uv1)
+    spec2 = spatio_temporal_spectrum(uv2)
+    spec1, spec2 = same_freq_grid(spec1, spec2)
+    if not temporal:
+        spec1 = np.mean(spec1, axis=0, keepdims=True)
+        spec2 = np.mean(spec2, axis=0, keepdims=True)
+    shape = spec1.shape
+    spec1 = fftshift(spec1)
+    spec2 = fftshift(spec2)
+    filter = fftshift(_initialize_filter(shape[1], shape[2]))
+    # spec1 *= filter
+    freq_x = fftfreq(shape[1]) * shape[1]
+    freq_y = fftfreq(shape[2]) * shape[2]
+    ks = np.meshgrid(freq_x, freq_y, indexing='ij')
+    sel = np.logical_and((ks[0]**2 + ks[1]**2) <= (shape[1] * 0.65 / 2)**2,
+                         (ks[0]**2 +ks[1]**2) >=0)
+    sel = fftshift(sel)
+    sel = sel.reshape((1, sel.shape[0], sel.shape[1]))
+    sel = sel.repeat(shape[0], axis=0)
+    term1 = spec1 / spec2
+    term2 = - np.log(spec1 / spec2)
+    kl_div = term1 + term2 - 1
+    term1 = np.where(sel, term1, np.nan)
+    term2 = np.where(sel, term2, np.nan)
+    kl_div = np.where(sel, kl_div, np.nan)
+    filter = filter.reshape((1, filter.shape[0], filter.shape[1]))
+    kl_div *= filter
+    return np.nanmean(kl_div)
+
+
+def j_divergence(uv1, uv2, *args):
+    return kullback_leibler(uv1, uv2, *args) + kullback_leibler(uv2, uv1, *args)
