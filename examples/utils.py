@@ -174,6 +174,7 @@ def play_movie(predictions: np.ndarray, title: str = '',
     plt.show()
     return ani
 
+
 def coarsen(data, factor: int = 4, axes=(-1, -2)):
     scales = [0] * data.ndim
     for i in axes:
@@ -185,6 +186,7 @@ def coarsen(data, factor: int = 4, axes=(-1, -2)):
         for j in range(factor):
             result += filtered[..., i::factor, j::factor]
     return result / factor**2
+
 
 def fft_coarsen(data, factor: int = 4, axes=(-1, -2)):
     spec = fft2(data)
