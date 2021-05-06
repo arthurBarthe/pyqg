@@ -16,6 +16,7 @@ from subgrid.utils import select_experiment, select_run
 from subgrid.utils import pickle_artifact
 from pathlib import Path
 
+
 class Parameterization:
     """Defines a parameterization of subgrid momentum forcing bases on a
     trained neural network. To be used within an object of type
@@ -34,7 +35,7 @@ class Parameterization:
         self.counter_0 = 0
         self.counter_1 = 0
         self.periodic = periodic
-        self.start = 1e4
+        self.start = 0
         self.i_call = 0
 
     def __call__(self, u, v):
@@ -139,7 +140,7 @@ print('*******************')
 print(net)
 print('*******************')
 
-parameterization = Parameterization(net, device, every_noise=10)
+parameterization = Parameterization(net, device, every_noise=1)
 size = 256 // 4
 year = 365 * 24 * 3600
 m = pyqg.QGModel(tavestart=10 * year, dt=8000 / 6, nx=size,
