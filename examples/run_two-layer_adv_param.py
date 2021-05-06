@@ -21,7 +21,7 @@ class Parameterization:
     """Defines a parameterization of subgrid momentum forcing bases on a
     trained neural network. To be used within an object of type
     WaterModelWithDLParameterization."""
-    def __init__(self, nn, device, mult_factor: float = 1.,
+    def __init__(self, nn, device, mult_factor=(1, 1),
                  every: int = 1, every_noise: int = 1, force_zero_sum: bool =
                  False, periodic=True):
         self.nn = nn.to(device=device)
@@ -76,6 +76,11 @@ class Parameterization:
             mean_sy = self.means['s_y']
             beta_sx = self.betas['s_x']
             beta_sy = self.betas['s_y']
+        # Multiplication factors
+        mean_sx *= self.mult_factor[0] * mean_sx
+        mean_sy *= self.mult_factor[0] * mean_sy
+        beta_sx *= self.mult_factor[1] * beta_sx
+        beta_sy *= self.mult_factor[1] * beta_sy
         if self.counter_1 == 0:
             # Update noise
             self.epsilon_x = np.random.randn(*mean_sx.shape)
@@ -93,9 +98,6 @@ class Parameterization:
         self.counter_1 += 1
         self.counter_0 %= self.every
         self.counter_1 %= self.every_noise
-        # Return forcing
-        self.s_x *= self.mult_factor
-        self.s_y *= self.mult_factor
         return self.s_x, self.s_y
 
     @staticmethod
@@ -142,42 +144,63 @@ print('*******************')
 print(net)
 print('*******************')
 
-parameterization = Parameterization(net, device)
-size = 64
-year = 365 * 24 * 3600
-day = 3600 * 24
-m = pyqg.QGModel(tavestart=15 * year, tmax=25 * year, dt=8000 / 2, nx=size,
-                 L = 1e6, U1=0.025, parameterization=parameterization)# Add
-# parameterization (both layers)
 
-# Diagnostic for the parameterization
-# m.add_diagnostic('ADVECparam',
-#                 description='Spectrum of the parameterization',
-#                 function=lambda self: np.abs(self.duh)**2/self.M**2
-#                  )
+# hyper-parameter space
+hyp_space = dict(
+    factor_mean = (0.1, 10),
+    factor_beta = (0.1, 10)
+)
+n_samples = 10
+for i_sample in range(n_samples):
+    factor_mean = (np.random.rand() * (hyp_space['factor_mean'][1] -
+                                      hyp_space['factor_mean'][0]) +
+                   hyp_space['factor_mean'][0])
+    factor_std = (np.random.rand() * (hyp_space['factor_std'][1] -
+                                       hyp_space['factor_std'][0]) +
+                   hyp_space['factor_std'][0])
+    mult_factor = (factor_mean, factor_std)
+    print('Mult_factor: ', mult_factor)
 
-path_output_dir = Path('/scratch/ag7531/pyqg_output')
+    parameterization = Parameterization(net, device, mult_factor=mult_factor)
+    size = 64
+    year = 365 * 24 * 3600
+    day = 3600 * 24
+    m = pyqg.QGModel(tavestart=10 * year, tmax=20 * year, dt=8000 / 2, nx=size,
+                     L = 1e6, U1=0.025, parameterization=parameterization)# Add
+    # parameterization (both layers)
 
-print(m.dx)
-print(m.rd)
-# plt.imshow(m.u[0], vmin=-1, vmax=1)
-# plt.colorbar()
+    # Diagnostic for the parameterization
+    # m.add_diagnostic('ADVECparam',
+    #                 description='Spectrum of the parameterization',
+    #                 function=lambda self: np.abs(self.duh)**2/self.M**2
+    #                  )
 
-snapshots = dict(q=[], u=[], v=[], du=[], dv=[])
-for snapshot in m.run_with_snapshots(
-        tsnapstart=15 * year, tsnapint=5 * day):
-    for var in snapshots.keys():
-        arr = np.asarray(getattr(m, var).copy())
-        snapshots[var].append(arr)
+    path_output_dir = Path('/scratch/ag7531/pyqg_output')
+
+    print(m.dx)
+    print(m.rd)
+    # plt.imshow(m.u[0], vmin=-1, vmax=1)
+    # plt.colorbar()
+
+    snapshots = dict(u=[], v=[], du=[], dv=[])
     try:
-        print("EKE: ", m.get_diagnostic('EKE'))
+        for snapshot in m.run_with_snapshots(
+                tsnapstart=10 * year, tsnapint=5 * day):
+            for var in snapshots.keys():
+                arr = np.asarray(getattr(m, var).copy())
+                snapshots[var].append(arr)
+            try:
+                print("EKE: ", m.get_diagnostic('EKE'))
+            except:
+                logging.debug('EKE not available yet')
+        #    plt.imshow(m.v[0], vmin=-0.2, vmax=0.2)
+        #    plt.pause(0.01)
     except:
-        logging.debug('EKE not available yet')
-#    plt.imshow(m.v[0], vmin=-0.2, vmax=0.2)
-#    plt.pause(0.01)
+        print('Run failed')
 
-for var in snapshots.keys():
-    video = np.stack(snapshots[var], axis=0)
-    np.save(path_output_dir / f'video_{var}_{size}_param', video)
+    for var in snapshots.keys():
+        video = np.stack(snapshots[var], axis=0)
+        np.save(path_output_dir / f'video_{var}_{size}_param', video)
 
-energy_budget(m, path_output_dir, f'{size}_param')
+    energy_budget(m, path_output_dir, f'{size}_{mult_factor[0]}_'
+                                      f'{mult_factor[1]}param')
