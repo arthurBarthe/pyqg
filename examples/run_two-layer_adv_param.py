@@ -30,11 +30,11 @@ class Parameterization:
         self.mult_factor = mult_factor
         self.every = every
         self.every_noise = every_noise
-        self.force_zero_sum = force_zero_sum
+        self.zero_sum = force_zero_sum
         self.counter_0 = 0
         self.counter_1 = 0
         self.periodic = periodic
-        self.start = 1e4
+        self.start = 0
         self.i_call = 0
 
     def __call__(self, u, v):
@@ -45,8 +45,8 @@ class Parameterization:
         self.i_call += 1
         if self.i_call < self.start:
             return np.zeros_like(u), np.zeros_like(v)
-        u *= 10
-        v *= 10
+        u = u * 10
+        v = v * 10
         if self.periodic:
             u = np.pad(u, ((0, 0), (10, 10), (10, 10)), 'wrap')
             v = np.pad(v, ((0, 0), (10, 10), (10, 10)), 'wrap')
@@ -64,7 +64,7 @@ class Parameterization:
                 mean_sy = mean_sy.cpu().numpy().squeeze()
                 beta_sx = beta_sx.cpu().numpy().squeeze()
                 beta_sy = beta_sy.cpu().numpy().squeeze()
-                self.apply_mult_factor(mean_sx, mean_sy, beta_sx, beta_sy)
+                self.apply_mult_factor(mean_sx, mean_sy)
                 self.means['s_x'] = mean_sx
                 self.means['s_y'] = mean_sy
                 self.betas['s_x'] = beta_sx
@@ -79,9 +79,9 @@ class Parameterization:
             # Update noise
             self.epsilon_x = np.random.randn(*mean_sx.shape)
             self.epsilon_y = np.random.randn(*mean_sy.shape)
-        self.s_x = mean_sx + self.epsilon_x
-        self.s_y = mean_sy + self.epsilon_y
-        if self.force_zero_sum:
+        self.s_x = mean_sx + self.epsilon_x / beta_sx
+        self.s_y = mean_sy + self.epsilon_y / beta_sy
+        if self.zero_sum:
             self.s_x = self.force_zero_sum(self.s_x, mean_sx, 1 / beta_sx)
             self.s_y = self.force_zero_sum(self.s_y, mean_sy, 1 / beta_sy)
         # Scaling required by nn
@@ -93,6 +93,8 @@ class Parameterization:
         self.counter_0 %= self.every
         self.counter_1 %= self.every_noise
         # Return forcing
+        self.s_x *= self.mult_factor
+        self.s_y *= self.mult_factor
         return self.s_x, self.s_y
 
     @staticmethod
@@ -139,12 +141,12 @@ print('*******************')
 print(net)
 print('*******************')
 
-parameterization = Parameterization(net, device, every_noise=10)
-size = 256 // 4
+parameterization = Parameterization(net, device)
+size = 64
 year = 365 * 24 * 3600
-
-m = pyqg.QGModel(tavestart=10 * year, dt=8000 / 12, nx=size,
-                 L = 2e6, U1=0.05, parameterization=parameterization)# Add
+day = 3600 * 24
+m = pyqg.QGModel(tavestart=15 * year, tmax=25 * year, dt=8000 / 2, nx=size,
+                 L = 1e6, U1=0.025, parameterization=parameterization)# Add
 # parameterization (both layers)
 
 # Diagnostic for the parameterization
@@ -157,25 +159,24 @@ path_output_dir = Path('/scratch/ag7531/pyqg_output')
 
 print(m.dx)
 print(m.rd)
-plt.imshow(m.u[0], vmin=-1, vmax=1)
-plt.colorbar()
+# plt.imshow(m.u[0], vmin=-1, vmax=1)
+# plt.colorbar()
 
-snapshots = dict(q=[], u=[], v=[])
+snapshots = dict(q=[], u=[], v=[], du=[], dv=[])
 for snapshot in m.run_with_snapshots(
-        tsnapstart=0, tsnapint=2000*m.dt):
-    for var in ('q', 'u', 'v'):
+        tsnapstart=15 * year, tsnapint=5 * day):
+    for var in snapshots.keys():
         arr = np.asarray(getattr(m, var).copy())
         snapshots[var].append(arr)
     try:
         print("EKE: ", m.get_diagnostic('EKE'))
     except:
         logging.debug('EKE not available yet')
-    plt.imshow(m.u[0], vmin=-1, vmax=1)
-    plt.pause(0.01)
+#    plt.imshow(m.v[0], vmin=-0.2, vmax=0.2)
+#    plt.pause(0.01)
 
-for var in ('q', 'u', 'v'):
+for var in snapshots.keys():
     video = np.stack(snapshots[var], axis=0)
-    assert not np.all(video[0, ...] == video[10, ...])
     np.save(path_output_dir / f'video_{var}_{size}_param', video)
 
 energy_budget(m, path_output_dir, f'{size}_param')
