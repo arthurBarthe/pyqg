@@ -65,7 +65,6 @@ class Parameterization:
                 mean_sy = mean_sy.cpu().numpy().squeeze()
                 beta_sx = beta_sx.cpu().numpy().squeeze()
                 beta_sy = beta_sy.cpu().numpy().squeeze()
-                self.apply_mult_factor(mean_sx, mean_sy)
                 self.means['s_x'] = mean_sx
                 self.means['s_y'] = mean_sy
                 self.betas['s_x'] = beta_sx
@@ -77,10 +76,10 @@ class Parameterization:
             beta_sx = self.betas['s_x']
             beta_sy = self.betas['s_y']
         # Multiplication factors
-        mean_sx *= self.mult_factor[0] * mean_sx
-        mean_sy *= self.mult_factor[0] * mean_sy
-        beta_sx *= self.mult_factor[1] * beta_sx
-        beta_sy *= self.mult_factor[1] * beta_sy
+        mean_sx *= self.mult_factor[0]
+        mean_sy *= self.mult_factor[0]
+        beta_sx *= self.mult_factor[1]
+        beta_sy *= self.mult_factor[1]
         if self.counter_1 == 0:
             # Update noise
             self.epsilon_x = np.random.randn(*mean_sx.shape)
@@ -147,7 +146,7 @@ print('*******************')
 
 # hyper-parameter space
 hyp_space = dict(
-    factor_mean = (0.1, 10),
+    factor_mean = (1, 3),
     factor_beta = (0.1, 10)
 )
 n_samples = 10
@@ -155,18 +154,21 @@ for i_sample in range(n_samples):
     factor_mean = (np.random.rand() * (hyp_space['factor_mean'][1] -
                                       hyp_space['factor_mean'][0]) +
                    hyp_space['factor_mean'][0])
-    factor_std = (np.random.rand() * (hyp_space['factor_std'][1] -
-                                       hyp_space['factor_std'][0]) +
-                   hyp_space['factor_std'][0])
-    mult_factor = (factor_mean, factor_std)
+    factor_beta = (np.random.rand() * (hyp_space['factor_beta'][1] -
+                                       hyp_space['factor_beta'][0]) +
+                   hyp_space['factor_beta'][0])
+    factor_mean = 1 + 0.2 * (i_sample + 1)
+    mult_factor = (factor_mean, 1 / factor_mean)
+    if i_sample == 0 and False:
+        mult_factor = (1, 1)
     print('Mult_factor: ', mult_factor)
 
     parameterization = Parameterization(net, device, mult_factor=mult_factor)
     size = 64
     year = 365 * 24 * 3600
     day = 3600 * 24
-    m = pyqg.QGModel(tavestart=10 * year, tmax=20 * year, dt=8000 / 2, nx=size,
-                     L = 1e6, U1=0.025, parameterization=parameterization)# Add
+    m = pyqg.QGModel(tavestart=10 * year, tmax=20 * year, dt=8000 / 6, nx=size,
+                     L = 1.5e6, U1=0.05, parameterization=parameterization)# Add
     # parameterization (both layers)
 
     # Diagnostic for the parameterization
@@ -179,8 +181,8 @@ for i_sample in range(n_samples):
 
     print(m.dx)
     print(m.rd)
-    # plt.imshow(m.u[0], vmin=-1, vmax=1)
-    # plt.colorbar()
+    plt.imshow(m.u[0], vmin=-0.2, vmax=0.2)
+    plt.colorbar()
 
     snapshots = dict(u=[], v=[], du=[], dv=[])
     try:
@@ -193,14 +195,16 @@ for i_sample in range(n_samples):
                 print("EKE: ", m.get_diagnostic('EKE'))
             except:
                 logging.debug('EKE not available yet')
-        #    plt.imshow(m.v[0], vmin=-0.2, vmax=0.2)
-        #    plt.pause(0.01)
-    except:
-        print('Run failed')
+            plt.imshow(m.v[0], vmin=-0.2, vmax=0.2)
+            plt.pause(0.01)
 
-    for var in snapshots.keys():
-        video = np.stack(snapshots[var], axis=0)
-        np.save(path_output_dir / f'video_{var}_{size}_param', video)
+        for var in snapshots.keys():
+            video = np.stack(snapshots[var], axis=0)
+            np.save(path_output_dir / f'video_{var}_{size}_{mult_factor[0]}_{mult_factor[1]}param', video)
 
-    energy_budget(m, path_output_dir, f'{size}_{mult_factor[0]}_'
-                                      f'{mult_factor[1]}param')
+        energy_budget(m, path_output_dir, f'{size}_{mult_factor[0]}_'
+                                          f'{mult_factor[1]}param')
+    except Exception as e:
+        print('Run failed: ', e)
+        with open(path_output_dir / 'failed_runs.txt', 'a') as f:
+            f.write(str(mult_factor) + '\n')
