@@ -5,6 +5,7 @@ import torch
 import logging
 import mlflow
 import sys
+import pickle
 
 from utils import energy_budget
 
@@ -77,10 +78,10 @@ class Parameterization:
             beta_sx = self.betas['s_x']
             beta_sy = self.betas['s_y']
         # Multiplication factors
-        mean_sx *= self.mult_factor[0] * mean_sx
-        mean_sy *= self.mult_factor[0] * mean_sy
-        beta_sx *= self.mult_factor[1] * beta_sx
-        beta_sy *= self.mult_factor[1] * beta_sy
+        mean_sx *= self.mult_factor[0]
+        mean_sy *= self.mult_factor[0]
+        beta_sx *= self.mult_factor[1]
+        beta_sy *= self.mult_factor[1]
         if self.counter_1 == 0:
             # Update noise
             self.epsilon_x = np.random.randn(*mean_sx.shape)
@@ -204,3 +205,6 @@ for i_sample in range(n_samples):
 
     energy_budget(m, path_output_dir, f'{size}_{mult_factor[0]}_'
                                       f'{mult_factor[1]}param')
+
+    with open(path_output_dir / f'model{size}', 'wb') as f:
+        pickle.dump(m, f)
