@@ -43,12 +43,14 @@ class Parameterization:
         """Return the two components of the forcing given the coarse
         velocities. The velocities are expected so sit on the same grid
         points. The returned forcing also sits on those grid points."""
-        # Scaling required by the nn
         self.i_call += 1
         if self.i_call < self.start:
             return np.zeros_like(u), np.zeros_like(v)
+        # Scaling required by the nn
         u = u * 10
         v = v * 10
+        # For doubly periodic boundaries we wrap around the input, with
+        # a number of points that depends on the neural network
         if self.periodic:
             u = np.pad(u, ((0, 0), (10, 10), (10, 10)), 'wrap')
             v = np.pad(v, ((0, 0), (10, 10), (10, 10)), 'wrap')
@@ -58,6 +60,7 @@ class Parameterization:
                 # Convert to tensor, puts on selected device
                 u = torch.tensor(u, device=self.device).float()
                 v = torch.tensor(v, device=self.device).float()
+                # Stack both componentsalong a new dimension
                 input_tensor = torch.stack((u, v), dim=1)
                 output_tensor = self.nn.forward(input_tensor)
                 mean_sx, mean_sy, beta_sx, beta_sy = torch.split(output_tensor,

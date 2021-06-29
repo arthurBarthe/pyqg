@@ -104,8 +104,8 @@ cdef class PseudoSpectralKernel:
     cdef object fft_q_to_qh
     cdef object ifft_qh_to_q
     cdef object ifft_uh_to_u
-    cdef object fft_u_to_uh
-    cdef object fft_v_to_vh
+    cdef object fft_du_to_duh
+    cdef object fft_dv_to_dvh
     cdef object ifft_vh_to_v
     cdef object fft_uq_to_uqh
     cdef object fft_vq_to_vqh
@@ -207,12 +207,12 @@ cdef class PseudoSpectralKernel:
                              direction='FFTW_BACKWARD', axes=(-2,-1))
             self.ifft_vh_to_v = pyfftw.FFTW(vh, v, threads=fftw_num_threads,
                              direction='FFTW_BACKWARD', axes=(-2,-1))
-            self.fft_u_to_uh = pyfftw.FFTW(du, duh, threads=fftw_num_threads,
-                                           direction='FFTW_FORWARD',
-                                           axes=(-2, -1))
-            self.fft_v_to_vh = pyfftw.FFTW(dv, dvh, threads=fftw_num_threads,
-                                           direction='FFTW_FORWARD',
-                                           axes=(-2, -1))
+            self.fft_du_to_duh = pyfftw.FFTW(du, duh, threads=fftw_num_threads,
+                                             direction='FFTW_FORWARD',
+                                             axes=(-2, -1))
+            self.fft_dv_to_dvh = pyfftw.FFTW(dv, dvh, threads=fftw_num_threads,
+                                             direction='FFTW_FORWARD',
+                                             axes=(-2, -1))
             self.fft_uq_to_uqh = pyfftw.FFTW(uq, uqh, threads=fftw_num_threads,
                              direction='FFTW_FORWARD', axes=(-2,-1))
             self.fft_vq_to_vqh = pyfftw.FFTW(vq, vqh, threads=fftw_num_threads,
@@ -233,9 +233,9 @@ cdef class PseudoSpectralKernel:
             self.u = npfft.irfftn(self.uh, axes=(-2,-1))
         def ifft_vh_to_v(self):
             self.v = npfft.irfftn(self.vh, axes=(-2,-1))
-        def fft_u_to_uh(self):
+        def fft_du_to_duh(self):
             self.duh = npfft.rfftn(self.du, axes=(-2,-1))
-        def fft_v_to_vh(self):
+        def fft_dv_to_dvh(self):
             self.dvh = npfft.rfftn(self.dv, axes=(-2,-1))
         def fft_uq_to_uqh(self):
             self.uqh = npfft.rfftn(self.uq, axes=(-2,-1))
@@ -387,8 +387,8 @@ cdef class PseudoSpectralKernel:
         self.du[:, :, :] = du_view
         self.dv[:, :, :] = dv_view
         # convert to spectral space
-        self.fft_u_to_uh()
-        self.fft_v_to_vh()
+        self.fft_du_to_duh()
+        self.fft_dv_to_dvh()
         for k in range(self.nz):
             for j in prange(self.nl, nogil=True, schedule='static',
                       chunksize=self.chunksize,
@@ -396,7 +396,7 @@ cdef class PseudoSpectralKernel:
                 for i in range(self.nk):
                     self.dqhdt[k,j,i] = (
                                         self.dqhdt[k,j,i] +
-                                        (-self._il[j] * self.duh[k, j,i] +
+                                        (-self._il[j] * self.duh[k, j, i] +
                                         +self._ik[i] * self.dvh[k, j, i] )
                                         )
         return
