@@ -202,6 +202,36 @@ class Model(PseudoSpectralKernel):
         self._initialize_inversion_matrix()
         self._initialize_diagnostics(diagnostics_list)
 
+    def __reduce__(self):
+        for d_name, d in self.diagnostics.items():
+            del d['function']
+        return (self.rebuild, (self.__class__, self.nx, self.ny, self.nz,
+                               self.rd, self.L, self.k, self.l, self.wv2,
+                               self.wv, self.diagnostics, self.filterfac,
+                               self.rek, self.tmax, self.tavestart,
+                               self.taveint))
+
+    @staticmethod
+    def rebuild(cls_name, nx, ny, nz, rd, L, k, l, wv2, wv, diags, filterfac,
+                rek, tmax, tavestart, taveint):
+        obj =  cls_name()
+        obj.nx = nx
+        obj.ny = ny
+        obj.nz = nz
+        obj.rd = rd
+        obj.L = L
+        obj.k = k
+        obj.l = l
+        obj.wv2= wv2,
+        obj.wv = wv
+        obj.diagnostics = diags
+        obj.filterfac = filterfac
+        obj.rek = rek
+        obj.tmax = tmax
+        obj.tavestart = tavestart
+        obj.taveint = taveint
+        return obj
+
 
     def run_with_snapshots(self, tsnapstart=0., tsnapint=432000.):
         """Run the model forward, yielding to user code at specified intervals.

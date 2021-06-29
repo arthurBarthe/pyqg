@@ -78,7 +78,9 @@ def to_radial(kx, ky, psd2d):
     kx = np.concatenate((kx, np.flip(kx[:, 1:-1])), axis=1)
     return radial_average_spectrum(kx, ky, psd2d)
 
-def energy_budget(m, path_output_dir: str = None, size: int = None):
+
+def energy_budget(m, path_output_dir: str = None, size: int = None,
+                  ymin = None, ymax=None):
     # some spectral plots
     KE1spec = m.get_diagnostic('KEspec')[0]
     KE2spec = m.get_diagnostic('KEspec')[1]
@@ -135,6 +137,7 @@ def energy_budget(m, path_output_dir: str = None, size: int = None):
     kk, _ = to_radial(m.k, m.l, ebud[0])
     ax2.grid()
     ax2.set_xlim([kk.min(), kk.max()])
+    ax2.set_ylim([ymin, ymax])
     ax1.set_xlabel(r'k (m$^{-1})$')
     ax2.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
     ax2.set_title(r'      Spectral Energy Budget')
