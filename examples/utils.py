@@ -80,19 +80,19 @@ def to_radial(kx, ky, psd2d):
 
 
 def energy_budget(m, path_output_dir: str = None, size: int = None,
-                  ymin = None, ymax=None):
+                  ymin = None, ymax=None, figsize=(12, 6), _2d=False,
+                  radial: bool = True):
     # some spectral plots
     KE1spec = m.get_diagnostic('KEspec')[0]
     KE2spec = m.get_diagnostic('KEspec')[1]
-    # k = m.kk
-    # KE1spec = KE1spec.sum(axis=0)
-    # KE2spec = KE2spec.sum(axis=0)
-    k, KE1spec = to_radial(m.k, m.l, KE1spec)
-    k, KE2spec = to_radial(m.k, m.l, KE2spec)
-    try:
-        param_spec = m.get_diagnostic('ADVECparam')[0].sum(axis=0)
-    except:
-        print('Could not find the parameterization diagnostic')
+
+    if not radial:
+        k = m.kk
+        KE1spec = KE1spec.sum(axis=0)
+        KE2spec = KE2spec.sum(axis=0)
+    else:
+        k, KE1spec = to_radial(m.k, m.l, KE1spec)
+        k, KE2spec = to_radial(m.k, m.l, KE2spec)
 
     # factor ebud
     ebud_factor = 1.e4
@@ -101,17 +101,17 @@ def energy_budget(m, path_output_dir: str = None, size: int = None,
     # inertial range
     ir = np.r_[10:20]
 
-    fig = plt.figure(figsize=(16., 7.))
+    fig = plt.figure(figsize=figsize)
     ax1 = fig.add_subplot(121)
     ax1.loglog(k, KE1spec, '.-')
     ax1.loglog(k, KE2spec, '.-')
+
     try:
-        ax1.loglog(m.kk, param_spec, '-*')
-    except:
-        print('Spectrum of parameterization not defined')
-    ax1.loglog(k[10:20], 2 * (k[ir] ** -3) *
+        ax1.loglog(k[10:20], 2 * (k[ir] ** -3) *
                KE1spec[ir].mean() / (k[ir] ** -3).mean(),
                '0.5')
+    except:
+        pass
     ax1.set_ylim([1e-9, 1e-3])
     ax1.set_xlim([k.min(), k.max()])
     ax1.grid()
@@ -121,31 +121,39 @@ def energy_budget(m, path_output_dir: str = None, size: int = None,
     ax1.set_title('Kinetic Energy Spectrum')
 
     # the spectral energy budget
-    ebud = [m.get_diagnostic('APEgenspec'),
-            m.get_diagnostic('APEflux'),
-            m.get_diagnostic('KEflux'),
-            m.get_diagnostic('adv_param'),
-            -m.rek * m.del2 * m.get_diagnostic('KEspec')[1] * m.M ** 2]
+    ebud = [m.get_diagnostic('APEgenspec') / m.M**2,
+            m.get_diagnostic('APEflux')/ m.M**2,
+            m.get_diagnostic('KEflux')/ m.M**2,
+            -m.rek * m.del2 * m.get_diagnostic('KEspec')[1]]
     ebud.append(-np.stack(ebud).sum(axis=0))
-    ebud_labels = ['APE gen', 'APE flux', 'KE flux', 'parameterization',
-                   'Bottom drag diss.' , 'Resid.']
+    ebud_labels = ['APE gen', 'APE flux', 'KE flux', 'Bottom drag diss.' ,
+                   'Resid.']
 
     ax2 = fig.add_subplot(122)
-    [ax2.semilogx(*(to_radial(m.k, m.l, term))) for term in ebud]
+    if not radial:
+        [ax2.semilogx(k, term.sum(axis=0)) for term in ebud]
+    else:
+        [ax2.semilogx(*(to_radial(m.k, m.l, term))) for term in ebud]
     ax2.legend(ebud_labels, loc='upper right')
 
-    kk, _ = to_radial(m.k, m.l, ebud[0])
+    if not radial:
+        kk = k
+    else:
+        kk, _ = to_radial(m.k, m.l, ebud[0])
     ax2.grid()
     ax2.set_xlim([kk.min(), kk.max()])
     ax2.set_ylim([ymin, ymax])
-    ax1.set_xlabel(r'k (m$^{-1})$')
+    ax1.set_xlabel(r'$\kappa$ (m$^{-1})$')
     ax2.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
     ax2.set_title(r'      Spectral Energy Budget')
 
-    ax2.set_xlabel(r'k (m$^{-1})$')
+    ax2.set_xlabel(r'$\kappa$ (m$^{-1})$')
 
     if path_output_dir:
         plt.savefig(path_output_dir / f'energy_budget{size}.jpg', dpi=600)
+
+    if not _2d:
+        return
 
     # New figure
     plt.figure()
@@ -220,9 +228,9 @@ def spatial_spectrum(uv, radial: bool = True, co: bool = False,
     dy = L / uv.shape[-2]
     print('dx', dx)
     if not co:
-        spectrum_2d = dx * dy / (uv.shape[-1] * uv.shape[-2]) * abs(fft2(uv))**2
+        spectrum_2d = 1 / (uv.shape[-1] * uv.shape[-2])**2 * abs(fft2(uv))**2
     else:
-        spectrum_2d = dx * dy / (uv.shape[-1] * uv.shape[-2]) * abs(fft2(uv)**2)
+        spectrum_2d = 1 / (uv.shape[-1] * uv.shape[-2])**2 * abs(fft2(uv)**2)
     # Time-average of spatial spectra
     spectrum_2d = spectrum_2d.mean(axis=0)
     if not radial:
@@ -302,3 +310,8 @@ def kullback_leibler(uv1, uv2, temporal=True):
 
 def j_divergence(uv1, uv2, *args):
     return kullback_leibler(uv1, uv2, *args) + kullback_leibler(uv2, uv1, *args)
+
+def to_barotropic(u, v, delta):
+    u_baro = 1 / (delta + 1) * (delta * u[:, 0] + u[:, 1])
+    v_baro = 1 / (delta + 1) * (delta * v[:, 0] + v[:, 1])
+    return np.stack((u_baro, v_baro), axis=1)
