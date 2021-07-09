@@ -452,7 +452,7 @@ class Model(PseudoSpectralKernel):
     def _initialize_filter(self):
         """Set up frictional filter."""
         # this defines the spectral filter (following Arbic and Flierl, 2003)
-        cphi=0.65*pi / 4
+        cphi=0.65*pi
         wvx=np.sqrt((self.k*self.dx)**2.+(self.l*self.dy)**2.)
         filtr = np.exp(-self.filterfac*(wvx-cphi)**4.)
         filtr[wvx<=cphi] = 1.
