@@ -79,7 +79,7 @@ def to_radial(kx, ky, psd2d):
     return radial_average_spectrum(kx, ky, psd2d)
 
 
-def energy_budget(m, path_output_dir: str = None, size: int = None,
+def energy_budget(m, size: int = None,
                   ymin = None, ymax=None, figsize=(12, 6), _2d=False,
                   radial: bool = True):
     # some spectral plots
@@ -93,10 +93,6 @@ def energy_budget(m, path_output_dir: str = None, size: int = None,
     else:
         k, KE1spec = to_radial(m.k, m.l, KE1spec)
         k, KE2spec = to_radial(m.k, m.l, KE2spec)
-
-    # factor ebud
-    ebud_factor = 1.e4
-    ebud_factor_s = str('%1.1e') % ebud_factor
 
     # inertial range
     ir = np.r_[10:20]
@@ -118,6 +114,7 @@ def energy_budget(m, path_output_dir: str = None, size: int = None,
     ax1.legend(['upper layer', 'lower layer', r'$k^{-3}$'],
                loc='lower left')
     ax1.set_xlabel(r'k (m$^{-1})$')
+    ax1.set_ylabel(r'$m^3 s^{-2}')
     ax1.set_title('Kinetic Energy Spectrum')
 
     # the spectral energy budget
@@ -149,9 +146,6 @@ def energy_budget(m, path_output_dir: str = None, size: int = None,
 
     ax2.set_xlabel(r'$\kappa$ (m$^{-1})$')
 
-    if path_output_dir:
-        plt.savefig(path_output_dir / f'energy_budget{size}.jpg', dpi=600)
-
     if not _2d:
         return
 
@@ -163,9 +157,6 @@ def energy_budget(m, path_output_dir: str = None, size: int = None,
         plt.imshow(fftshift(ebud[i], axes=(0,)))
         plt.title(ebud_labels[i])
         plt.colorbar()
-
-    if path_output_dir:
-        plt.savefig(path_output_dir / f'energy_budget2D{size}.jpg', dpi=600)
 
 def play_movie(predictions: np.ndarray, title: str = '',
                interval: int = 500, vmin=None, vmax=None):
@@ -315,3 +306,48 @@ def to_barotropic(u, v, delta):
     u_baro = 1 / (delta + 1) * (delta * u[:, 0] + u[:, 1])
     v_baro = 1 / (delta + 1) * (delta * v[:, 0] + v[:, 1])
     return np.stack((u_baro, v_baro), axis=1)
+
+
+
+
+
+
+
+
+
+import xarray as xr
+def sim_to_xrds(sim, model, snapint: int):
+    time = np.arange(sim['u'].shape[0]) * snapint
+    x_coords = np.arange(model.nx) * model.dx
+    y_coords = np.arange(model.ny) * model.dy
+    var_arrays = dict()
+    for var_name, var in sim.items():
+        var_arrays[var_name] = xr.DataArray(var,
+                     dims=('time', 'z', 'y', 'x'),
+                     coords=dict(time=time, x=x_coords, y=y_coords, z=['U', 'L']))
+    return xr.Dataset(var_arrays)
+
+def get_diagnostics(diagnostic_name: str, models, radial: bool = False):
+    scaling = [m.M**2 if diagnostic_name=='entspec' else 1 for m in models]
+    diagnostics = [m.get_diagnostic(diagnostic_name) for m in models]
+    diagnostics = [d / s for (d, s) in zip(diagnostics, scaling)]
+    if radial:
+        for i, (m, d) in enumerate(zip(models, diagnostics)):
+            if d.ndim==2:
+                d = d.reshape((1,) + d.shape)
+                d = np.repeat(d, 2, axis=0)
+            n_layers = d.shape[0]
+            per_layer = [to_radial(m.k, m.l, d[l]) for l in range(n_layers)]
+            k, diagnostics_i = per_layer[0][0], np.stack([per_layer[layer][1] for layer in range(n_layers)])
+            coords = {'layer': ['U', 'L'], r'$\kappa$':k}
+            diagnostics[i] = xr.DataArray(diagnostics_i,
+                                          dims=('layer', r'$\kappa$'),
+                                          coords=coords)
+    return diagnostics
+
+def plot_diagnostic(diagnostics, name, layer: str = 'U'):
+    plt.figure()
+    for model_name, model_diagnostic in diagnostics[name].items():
+        model_diagnostic.sel(layer=layer).plot(xscale='log', yscale='log', linestyle='-.',
+                                                           linewidth=2, label=model_name)
+    plt.title(name + ', layer ' + layer)
